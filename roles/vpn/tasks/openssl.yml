@@ -37,7 +37,7 @@
       dest: "configs/{{ IP_subject_alt_name }}/pki/openssl.cnf"
 
   - name: Build the CA pair
-    shell: >
+    command: >
       openssl ecparam -name prime256v1 -out ecparams/prime256v1.pem &&
       openssl req -utf8 -new
       -newkey {{ algo_params | default('ec:ecparams/prime256v1.pem') }}
@@ -60,13 +60,13 @@
       mode: 0600
 
   - name: Generate the serial number
-    shell: echo 01 > serial && touch serial_generated
+    command: echo 01 > serial && touch serial_generated
     args:
       chdir: "configs/{{ IP_subject_alt_name }}/pki/"
       creates: serial_generated
 
   - name: Build the server pair
-    shell: >
+    command: >
       openssl req -utf8 -new
       -newkey {{ algo_params | default('ec:ecparams/prime256v1.pem') }}
       -config openssl.cnf
@@ -88,7 +88,7 @@
       subjectAltName: "DNS:{{ IP_subject_alt_name }},IP:{{ IP_subject_alt_name }}"
 
   - name: Build the client's pair
-    shell: >
+    command: >
       openssl req -utf8 -new
       -newkey {{ algo_params | default('ec:ecparams/prime256v1.pem') }}
       -config openssl.cnf
@@ -111,7 +111,7 @@
     with_items: "{{ users }}"
 
   - name: Build the client's p12
-    shell: >
+    command: >
       openssl pkcs12
       -in certs/{{ item }}.crt
       -inkey private/{{ item }}.key
@@ -134,7 +134,7 @@
       - "{{ users }}"
 
   - name: Get active users
-    shell: >
+    command: >
       grep ^V index.txt |
       grep -v "{{ IP_subject_alt_name }}" |
       awk '{print $5}' |
@@ -144,7 +144,7 @@
     register: valid_certs
 
   - name: Revoke non-existing users
-    shell: >
+    command: >
       openssl ca -gencrl
       -config openssl.cnf
       -passin pass:"{{ easyrsa_CA_password }}"
