@@ -37,7 +37,7 @@
       dest: "configs/{{ IP_subject_alt_name }}/pki/openssl.cnf"
 
   - name: Build the CA pair
-    command: >
+    shell: >
       openssl ecparam -name prime256v1 -out ecparams/prime256v1.pem &&
       openssl req -utf8 -new
       -newkey {{ algo_params | default('ec:ecparams/prime256v1.pem') }}
@@ -52,6 +52,7 @@
       creates: "{{ IP_subject_alt_name }}_ca_generated"
     environment:
       subjectAltName: "DNS:{{ IP_subject_alt_name }},IP:{{ IP_subject_alt_name }}"
+    tags: skip_ansible_lint
 
   - name: Copy the CA certificate
     copy:
@@ -60,13 +61,14 @@
       mode: 0600
 
   - name: Generate the serial number
-    command: echo 01 > serial && touch serial_generated
+    shell: echo 01 > serial && touch serial_generated
     args:
       chdir: "configs/{{ IP_subject_alt_name }}/pki/"
       creates: serial_generated
+    tags: skip_ansible_lint
 
   - name: Build the server pair
-    command: >
+    shell: >
       openssl req -utf8 -new
       -newkey {{ algo_params | default('ec:ecparams/prime256v1.pem') }}
       -config openssl.cnf
@@ -86,9 +88,10 @@
       creates: certs/{{ IP_subject_alt_name }}_crt_generated
     environment:
       subjectAltName: "DNS:{{ IP_subject_alt_name }},IP:{{ IP_subject_alt_name }}"
+    tags: skip_ansible_lint
 
   - name: Build the client's pair
-    command: >
+    shell: >
       openssl req -utf8 -new
       -newkey {{ algo_params | default('ec:ecparams/prime256v1.pem') }}
       -config openssl.cnf
@@ -109,9 +112,10 @@
     environment:
       subjectAltName: "DNS:{{ item }}"
     with_items: "{{ users }}"
+    tags: skip_ansible_lint
 
   - name: Build the client's p12
-    command: >
+    shell: >
       openssl pkcs12
       -in certs/{{ item }}.crt
       -inkey private/{{ item }}.key
@@ -124,6 +128,7 @@
       chdir: "configs/{{ IP_subject_alt_name }}/pki/"
     with_items: "{{ users }}"
     register: p12
+    tags: skip_ansible_lint
 
   - name: Copy the p12 certificates
     copy:
@@ -134,7 +139,7 @@
       - "{{ users }}"
 
   - name: Get active users
-    command: >
+    shell: >
       grep ^V index.txt |
       grep -v "{{ IP_subject_alt_name }}" |
       awk '{print $5}' |
@@ -142,9 +147,10 @@
     args:
       chdir: "configs/{{ IP_subject_alt_name }}/pki/"
     register: valid_certs
+    tags: skip_ansible_lint
 
   - name: Revoke non-existing users
-    command: >
+    shell: >
       openssl ca -gencrl
       -config openssl.cnf
       -passin pass:"{{ easyrsa_CA_password }}"
@@ -157,6 +163,7 @@
       subjectAltName: "DNS:{{ item }}"
     when: item not in users
     with_items: "{{ valid_certs.stdout_lines }}"
+    tags: skip_ansible_lint
 
   delegate_to: localhost
   become: no
