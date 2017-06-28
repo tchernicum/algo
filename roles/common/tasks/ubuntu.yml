@@ -72,7 +72,7 @@
 - name: Seth the apparmor fact
   set_fact:
     apparmor_enabled: true
-  when: '"profiles are in enforce mode" in apparmor_status.stdout'
+  when: apparmor_status|succeeded
 
 - name: Set system-based facts
   set_fact:
